@@ -119,7 +119,7 @@ inigam:
     push bc             ; save the counter
     ld hl,$c000         ; source = freshly initialized ram
     ld bc,$1000         ; 4 kb of zeros
-    call vrampr         ; purge vramwr
+    call vramwr         ; purge vramwr
     
     
     
@@ -144,6 +144,131 @@ vrampr:
     out ($bf),a
     pop af
     ret
+
+; --------------------------------------------------------------
+; WRITE TO RAM
+; Write BC amount of bytes from data source pointed to by HL
+; Tip: Use vrampr before calling
+
+vramwr:
+    ld a,(hl)
+    out ($be),a
+    inc hl
+    dec bc
+    ld a,c
+    or b
+    jp nz,vramwr
+    ret
+
+; --------------------------------------------------------------
+; LOAD SPRITE ATTRIBUTE TABLE
+; Load data into sprite attribute table (SAT) from the buffer
+
+ldsat:
+    ld hl,$3f00;        ; point to the start of SAT in vram
+    call vrampr         ; prepare vram to receive data
+    ld b,255            ; amount of bytes to output
+    ld c,$be            ; destination is vdp data port
+    ld hl,satbuf        ; source is start of sat buffer
+    otir                ; output buffer to vdp
+    ret
+
+; --------------------------------------------------------------
+; UPDATE SAT BUFFER
+; Generate vpos, hpos, and cc data for the sprites that make up
+; each of the cars (player, Mae and Ash)
+; Also generate char code (cc) data from hiscore and score
+
+; Generate sat buffer data from player's x,y coordinates
+
+upbuf:
+    ld a,(ply)          ; load player's current y co-ordinate
+    ld hl,plrvp         ; point to sat buffer
+    call cary           ; refresh buffer according to y
+
+
+
+
+; --------------------------------------------------------------
+; CAR Y TO SPRITES' VERTICAL POSITIONS (VPOS) IN BUFFER
+; Generate vpos sat buffer data from a car's y position
+; A = car's y (i.e. ply), HL = buffer address of car vpos
+
+cary:
+    ld b,4              ; a car is 4 tiles wide
+-:
+    push af             ; a row of 4 tiles share the same y
+    push af             ; so here the y's are saved on stack
+    push af
+    push af
+    add a,8             ; next row is 8 pixels below
+    djnz -
+
+; --------------------------------------------------------------
+; CAR X TO SPRITES' HORIZONTAL POSITIONS (HPOS) IN BUFFER
+; Generates hpos sat buffer data from a car's x position
+; A = car's x (i.e. plx), HL = buffer address of car _high_part_Tone.section
+carx:
+    ld c,a              ; save hpos in c
+    .rept 4             ; wladx: Repeat code four times
+    ld a,c              ; load hpos into A
+    ld b,4              ; loop: Repeat four times
+-:
+    ld (hl),a           ; write value to buffer at address
+    inc hl              ; skip over the char code byte
+    inc hl              ; point to next hpos byte in buffer
+    add a,8             ; add 8 (a tile's width in pixels)
+    djnz -              ; jump back
+    .endr               ; end of xladx repeat directive
+    ret
+
+; --------------------------------------------------------------
+; SET CAR SPRITES' CHARACTER CODES (CC)
+; HL = pointer to 16 byte char codes block, DE = buffer index
+
+carcc:
+    ld bc,16
+-:
+    ldi    
+    inc de
+    ld a,b
+    or c
+    jp nz,-
+    ret
+
+; --------------------------------------------------------------
+; ADD TO SCORE
+; Add points to the score
+; HL = address of the digit we want to increase
+; B = the amount by which to increase the digit
+
+addsco:
+    ld a,(hl)               ; get the value of the digit
+    add a,b                 ; add the amount to this value
+    ld (hl),a               ; put updated digit back in string
+    cp 9                    ; test updated digit
+    ret c                   ; if 9 or less, relax and return
+    ret z
+    
+; Update the next digit to the left
+
+    sub 10                  ; make digit '0'
+    ld (hl),a               ; and load it into position
+-:
+    dec hl                  ; move pointer to next digit (left)
+    inc (hl)                ; increase that digit
+    ld a,(hl)               ; load value into a
+    cp 9                    ; test it like before
+    ret c                   ; if 9 or less then scoring is done
+    ret z                   ;
+    sub 10                  ; else - make digit '0'
+    ld (hl),a               ; and load it into position
+    jp -                    ; update and test next digit
+    
+    
+        
+    
+
 
 ; --------------------------------------------------------------
 ; MEMORY FILL
