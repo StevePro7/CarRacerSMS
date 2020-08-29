@@ -367,3 +367,26 @@ mfill:
     ldir                ; else - write filler byte BC times
                         ; while incrementing HE and HL...
     ret
+    
+; --------------------------------------------------------------
+; SET COLOR
+; A = color index, B = color value (intensity)
+
+setcol:
+    out ($bf),a
+    ld a,%11000000
+    out ($bf),a
+    ld a,b
+    out ($be),a
+    ret
+
+; --------------------------------------------------------------
+; Wait for vertical blanking phase
+wait:
+    ld a,(iflag)            ; load frame interrupt flag
+    or a                    ; is it set?
+    jp z,wait               ; no? - keep looping
+    xor a                   ; else - reset flag
+    ld (iflag),a
+    ret                     ; return
+    
