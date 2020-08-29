@@ -107,6 +107,57 @@
 
 inigam:
     ld hl,$c000         ; point to beginning of ram
+    ld bc,$1000         ; 4 kb to fill
+    ld a,0              ; with value 0
+    call mfill          ; do it!
 
+; Use the initialized ram to clean all of vram
+
+    ld hl,$0000         ; prepare vram for data at $0000
+    call vrampr
+    ld b,4              ; write 4 x 4 kb = 16 kb
+    push bc             ; save the counter
+    ld hl,$c000         ; source = freshly initialized ram
+    ld bc,$1000         ; 4 kb of zeros
+    call vrampr         ; purge vramwr
+    
+    
+    
+    
 loop:
     jp loop
+
+
+
+; --------------------------------------------------------------
+; SUBROUTINES
+; --------------------------------------------------------------
+; PREPARE VRAM
+; Set up vdp to receive data at vram address in HL
+
+vrampr:
+    push af
+    ld a,l
+    out ($bf),a
+    ld a,h
+    or $40
+    out ($bf),a
+    pop af
+    ret
+
+; --------------------------------------------------------------
+; MEMORY FILL
+; HL = base address, BC = area size, A = fill byte
+
+mfill:
+    ld (hl), a          ; load filler byte to base address
+    ld d,h              ; make DE = HL
+    ld e,l
+    inc de              ; increment DE to HL + 1
+    dec bc              ; decrement counter
+    ld a,b              ; was BC = 0001 to begin with?
+    or c
+    ret z               ; yes - then just return
+    ldir                ; else - write filler byte BC times
+                        ; while incrementing HE and HL...
+    ret
