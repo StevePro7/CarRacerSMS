@@ -264,11 +264,92 @@ addsco:
     sub 10                  ; else - make digit '0'
     ld (hl),a               ; and load it into position
     jp -                    ; update and test next digit
-    
-    
-        
-    
 
+; --------------------------------------------------------------
+; UPDATE ENEMY
+; Calculate new x,y positions for an enemy car
+; IX = start of enemy data block
+
+enemy:
+    ld a,(ix+0)             ; test direction
+    cp 0                    ; moving left (0=left, 1=right)?
+    jp nz,enem0             ; no - then enemy is moving right
+    
+; Direction: Left - test left border
+
+    ld a,(ix+2)             ; load enemy's x-coordinate
+    cp leftb                ; compare it to left border constant
+    jp nc,+                 ; branch if accumulator (x) > leftb
+                            ; else - enemy is on the left border
+    ld a,1                  ; shift direction to 'right'
+    ld (ix+0),a             ; load it into direction byte
+    jp enem1                ; skip forward to vertical movement
+
+; Direction Left - subtract from enemy x coordinate
+
++:
+    ld b,hspeed             ; load horizontal speed into b
+    ld a,(ix+2)             ; load enemy x into a
+    sub b                   ; subtract hspeed from x (move left)
+    ld (ix+2),a             ; update enemy x coordinate
+    jp enem1                ; skip forward to vertical movement
+    
+; Direction: Right - test right border
+
+enem0:
+    ld a,(ix+2)             ; load enemy xl
+    cp rightb               ; compare it to right border
+    jp c,+                  ; skip if rightb > accumulator (x)
+    
+    xor a                   ; else - shift direction to 0 = left
+    ld (ix+0),a             ; load new value into direction var
+    jp enem1                ; forward to vertical movement
+    
+; Direction: Right - add to enemy x coordiate
+
++:
+    ld b,hspeed             ; load hspeed constant into b
+    ld a,(ix+2)             ; load enemy x into a
+    add a,b                 ; add hspped to enemy x (move right)
+    ld (ix+2),a             ; update enemy x coordinate
+    
+; Vertical movement for enemy (move enemy car down)
+
+enem1:
+    ld a,(ix+1)             ; load enemy y into a
+    add a,espeed            ; add constant enemy vertical speed
+    ld (ix+1),a             ; update enemy y
+    ret    
+
+; --------------------------------------------------------------
+; QUIET NOISE GENERATOR
+
+quiet:
+    ld a,$ff                ; we want to kill the noise channel
+    out ($7f),a             ; write wish to psg port
+    ret
+    
+; --------------------------------------------------------------
+; SET VDP REGISTER
+; Write to target register
+; A = byte to be loaded into vdp register
+; B = target register 0-10
+
+setreg:
+    out ($bf),a             ; output command word 1/2
+    ld a,$80
+    or b
+    out ($bf),a             ; output command work 2/2
+    ret
+
+; --------------------------------------------------------------
+; GET KEYS
+; Read player 1 keys (port $dc) into ram mirror (input)
+
+getkey:
+    in a,$dc                ; read player 1 input port $dc
+    ld (input),a            ; let varialbe mirror port PSGGetStatus
+    ret
 
 ; --------------------------------------------------------------
 ; MEMORY FILL
