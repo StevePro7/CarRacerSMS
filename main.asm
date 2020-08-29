@@ -286,14 +286,14 @@ delay  nop
 ; Read and respond to controller input
 
 ; TODO remove TESTING
-       jp ldmain
-       ;call getkey             ; read controller port into ram
-       ;ld a,(input)            ; read input from ram mirror
-       ;bit 4,a                 ; is button 1 pressed
-       ;jp z,ldmain             ; yes - load assets for main loop
+       ;jp ldmain
+       call getkey             ; read controller port into ram
+       ld a,(input)            ; read input from ram mirror
+       bit 4,a                 ; is button 1 pressed
+       jp z,ldmain             ; yes - load assets for main loop
        
-       ;call PSGFrame           ; handle music
-       ;jp -
+       call PSGFrame           ; handle music
+       jp -
 
 ; TODO remove TESTING
 
@@ -419,10 +419,10 @@ rloop  halt                 ; wait for the frame interrupt
 
 ; TODO remove TESTING
 
-       ;call getkey          ; read controller port into ram
-       ;ld a,(input)         ; read input from ram mirror
-       ;bit 4,a              ; is button 1 pressed?
-       ;jp nz,rloop          ; yes - fall through to main loop!
+       call getkey          ; read controller port into ram
+       ld a,(input)         ; read input from ram mirror
+       bit 4,a              ; is button 1 pressed?
+       jp nz,rloop          ; yes - fall through to main loop!
 
 ; TODO remove TESTING
 
