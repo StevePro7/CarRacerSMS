@@ -578,13 +578,63 @@ endmae
        ld (scroll),a        ; update scroll buffer
 
        jp mloop             ; jump back for another round
-       
 
+; When the player dies...
 
-plrdie:
-       jp plrdie
+plrdie ld a,85              ; set death delay
+       ld (frame),a         ; load it into frame counter
 
+       ld a,%11110011       ; turn noise volume up to 6 db
+       out ($7f),a          ; write to psg port
+       ld a,%11100101       ; make medium coarse noise
+       out ($7f),a          ; write to psg port
 
+       ld hl,crash          ; point to crashed car graphics
+       ld de,plrcc          ; point to player cc buffer start
+       call carcc           ; set the player's sprites to crash!
+
+; This is the death loop
+
+dloop  call wait            ; start dead loop with vblank
+       call ldsat           ; update the score
+
+; Move enemy Ash fast upwards to create the effect of enemy cars
+; coming from behind when player is crashed
+
+       ld a,(ashy)          ; load Ash vertical position
+       cp 192               ; is Ash's y-coordinate = 192
+       jp z,+               ; yes - don't move him anymore
+                            ; (he now hides below the screen)
+
+       ld b,9               ; 9 pixels pr. frame is fast!
+       ld a,(ashy)          ; load Ash's y-coordinate
+       sub b                ; subtract from Ash's current y
+       ld (ashy),a          ; load result back into variable
++
+; Move enemy Mae fast upwards (just like we did with Ash above)
+
+       ld a,(maey)
+       cp 192               ; stop Mae in blanked screen area
+       jp z,+               ; if she is not there, move her
+
+       ld b,9               ; super fast at speed 9
+       ld a,(maey)          ; load Mae's current y position
+       sub b                ; subtract from Mae's current y
+       ld (maey),a          ; load result back into variable
++
+       ld a,(frame)         ; point to counter (death delay)
+       cp 0                 ; is it 0?
+       jp z,ldmain          ; yes - jump back and respawn player
+       dec a                ; decremeent the counter
+
+; Check if we should kill the crash sound
+
+       ld (frame),a
+       ld a,(frame)         ; point to counter (death delay)
+       cp 30                ; is it up?
+       call z,quiet         ; yes - turn off crash sound
+
+       jp dloop             ; another round of death...       
 
 
 ; --------------------------------------------------------------
