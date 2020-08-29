@@ -297,7 +297,60 @@ delay   nop
 ; Load assets for main loop.  Start with debouncing
 
 ldmain  ld a,%10100000      ; turn display off
-    ld b,1
+       ld b,1
+       call setreg          ; do it by writing to register 1
+       ld b,10              ; set up a 10 frame delay to prevent
+-      halt                 ; bouncing keys
+       djnz -
+       
+       call PSGStop         ; turn off the music
+       di                   ; turn off interrupts
+
+; Setup hiscore and score for main loop and remove terminator
+
+       ld hl,initsc         ; point to (hi-)score init data
+       ld de,highvp         ; target the (hi-) score sat buffer
+       ld bc,8              ; write 8 vpos bytes
+       ldir                 ; do it
+       ld hl,initsc+8       ; point to (hi-)score init data #2
+       ld de,highhp         ; target buffer again
+       ld bc,16             ; write 16 hpos and cc bytes
+       ldir
+
+; Setup the background assets for the main loop
+
+       ld hl,$0000          ; first tile 0 index 0
+       call vrampr          ; prepare vram
+       ld hl,bgtile         ; background tile data (the road)
+       ld bc,2*32           ; 2 tiles (!), each tile is 32 bytes
+       call vramwr          ; write background tiles to vram
+       
+       ld hl,$3800          ; point to name table
+       call vrampr          ; prepare vram
+       ld hl,bgmap          ; point to background tilemap data
+       ld bc,32*28*2        ; 32 x 28 tiles, each is 2 bytes
+       call vramwr          ; write name table to vram
+       
+; Make a standard enemy car for Ash and put it in the buffer
+
+       ld de,ashcc          ; point to Ash char codes in buffer
+       ld hl,encar          ; point to enemy car graphics
+       call carcc           ; set Ash graphics to enemy car
+
+; Adjust the sprite palette (player might be cyan)
+
+       ld a,$11             ; player car's color
+       ld b,%000010111      ; set it to default orange
+       call setcol          ; do it
+       
+       ld a,$14             ; hiscore digit color
+       ld b,%00110101       ; set them to default blue
+       call setcol          ; do it
+       
+; Put a shining new player car in the buffer
+
+
+       
 
 loop:
     jp loop
