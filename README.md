@@ -14,4 +14,8 @@ https://marketplace.visualstudio.com/items?itemName=Imanolea.z80-asm
 https://marketplace.visualstudio.com/items?itemName=mborik.z80-macroasm
 
 
-http://www.breakintoprogram.co.uk/computers/zx-spectrum/assembly-language/z80-development-toolchain
+http://www.breakintoprogram.co.uk/computers/zx-spectrum/assembly-language/z80-development-toolchain`
+
+
+The Z80 assembly intellisense stopped working in VS Code so I install ASM Code Lens
+and magically started to work

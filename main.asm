@@ -251,8 +251,53 @@ prepti
        call setreg         ; set register.
 
        ei                  ; turn interrupts on.
-       
-       
+
+; Play title screen tune
+
+    ld hl,titune            ; load title screen tune
+    call PSGPlayNoRepeat    ; play it once
+
+; Display title screen and wait for player 1 button 1 press
+
+-   halt                    ; start loop in vblank
+
+; Prevent CRAM show on title screen (yes, ugly hack)
+
+    ld b,200
+delay   nop
+    nop
+    nop
+    nop
+    nop
+    djnz delay
+
+; Flash the hiscore
+
+    ld hl,frame             ; point to the frame counter
+    ld a,(hl)               ; load it into the accumulator
+    and %11110000           ; apply quick and dirty bit masking
+    or %00000011            ; to control the speed and color of
+    ld b,a                  ; the flashing hiscore digits
+    ld a,$14                ; index of color we want to change
+    call setcol             ; set color of hiscore
+    inc (hl)                ; increment counter
+
+
+; Read and respond to controller input
+
+    call getkey             ; read controller port into ram
+    ld a,(input)            ; read input from ram mirror
+    bit 4,a                 ; is button 1 pressed
+    jp z,ldmain             ; yes - load assets for main loop
+    
+    call PSGFrame           ; handle music
+    
+    jp -
+
+; Load assets for main loop.  Start with debouncing
+
+ldmain  ld a,%10100000      ; turn display off
+    ld b,1
 
 loop:
     jp loop
