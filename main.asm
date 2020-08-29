@@ -116,14 +116,105 @@ inigam:
     ld hl,$0000         ; prepare vram for data at $0000
     call vrampr
     ld b,4              ; write 4 x 4 kb = 16 kb
+-:
     push bc             ; save the counter
     ld hl,$c000         ; source = freshly initialized ram
     ld bc,$1000         ; 4 kb of zeros
     call vramwr         ; purge vramwr
+    pop bc              ; retrieve counter
+    djnz -
+
+; Initialize PSGLib
     
+    call PSGInit        ; credit goes to sverx!
+
+; Load various assets into vram
+
+    ld hl,$c010         ; color bank 2, color 0 (sprites)
+    call vrampr         ; prepare vram
+    ld hl,palspr        ; sprite palette data
+    ld bc,5             ; 5 colors
+    call vramwr         ; set sprite palette
     
+    ld hl,$2600         ; first tile 0 index $130
+    call vrampr         ; prepare vram at the above address
+    ld hl,blchar        ; the blue characters - for hiscore
+    ld bc,10*32         ; 10 tiles, each tile is 32 bytes
+    call vramwr         ; write blue character tile to vram
     
+    ld hl,$2800         ; first tile 0 index $140
+    call vrampr         ; prepare vram at the above address
+    ld hl,rdchar        ; the red characters - for score
+    ld bc,10*32         ; 10 tiles, each tile is 32 bytes
+    call vramwr         ; write red characters to vram
+
+    ld hl,$2000         ; first tile 0 index 256
+    call vrampr         ; prepare vram
+    ld hl,pltile        ; player car tile data
+    ld bc,16*32         ; 16 tiles, 32 bytes each
+    call vramwr         ; write player car tiles to vram
     
+    ld hl,$2200         ; first tile 0 index 272
+    call vrampr         ; prepare vram
+    ld hl,entile        ; enemy car tile data
+    ld bc,16*32         ; 16 tiles, 32 bytes each
+    call vramwr         ; write enemy car tiles to vram
+    
+    ld hl,$2400         ; first tile 0 index 288
+    call vrampr         ; prepare vram
+    ld hl,plcras        ; crashed player car data
+    ld bc,16*32         ; 16 tiles, 32 bytes each
+    call vramwr         ; write crashed player tiles to vram
+    
+    ld hl,$c000         ; color bank 1, color 0
+    call vrampr         ; prepare vram
+    ld hl,bgpal         ; background palette
+    ld bc,4             ; 4 colors
+    call vramwr         ; set background palette
+    
+; Initialize hiscore
+
+    ld hl,hscore+1      ; point to hundreds-digit in hiscore
+    ld b,2              ; we want to add 2 to this digit
+    call addsco         ; initialize hiscore counter to 0200
+
+; Initialize variables - once per game
+
+    xor a
+    ld (maedir),a       ; Mae goes left
+    ld a,20             ;
+    ld (ashx),a         ; set Ash x
+    ld a,100            ;
+    ld (maex),a         ; set Mae x
+    ld a,140            ;
+    ld (ply),a          ; set player y
+
+; Prepare for the title screen loop
+
+prepti:
+
+; Initialize the VDP registers
+
+    ld hl,regdat        ; point to register init data
+    ld b,11             ; 11 bytes of register data
+    ld c,$80            ; VDP register command byte
+-:
+    ld a,(hl)           ; load one byte of data into a
+    out ($bf),a         ; output data to VDP command port
+    ld a,c              ; load the command byte
+    out ($bf),a         ; output it to the VDP command port
+    inc hl              ; inc. pointer to next byte of data
+    inc c               ; inc. command byte to next register
+    djnz -              ; jump back to '-' if b > 0
+
+; Load title screen specific assets into vram
+
+    ld hl,$0000         ; first tile 0 index 0
+    call vrampr         ; prepare vram
+    ld hl,titile        ; title screen tile data
+    ld bc,77*32         ; 77 tiles, each tile is 32 bytes
+    call vramwr         ; write title screen tiles ot vram
+
 loop:
     jp loop
 
@@ -468,9 +559,3 @@ timap  .include "assets\title (tilemap).inc"
 titile .include "assets\title (tiles).inc"
 titune .incbin "assets\RacerTitle_V02.psg"
 .include "assets\PSGlib.inc"
-
-
-
-
-
-
