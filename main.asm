@@ -417,10 +417,14 @@ rloop  halt                 ; wait for the frame interrupt
 
 ; Proceed to main loop if the player presses start button
 
-       call getkey          ; read controller port into ram
-       ld a,(input)         ; read input from ram mirror
-       bit 4,a              ; is button 1 pressed?
-       jp nz,rloop          ; yes - fall through to main loop!
+; TODO remove TESTING
+
+       ;call getkey          ; read controller port into ram
+       ;ld a,(input)         ; read input from ram mirror
+       ;bit 4,a              ; is button 1 pressed?
+       ;jp nz,rloop          ; yes - fall through to main loop!
+
+; TODO remove TESTING
 
        ld a,%11110110       ; turn noise volume up to 12 db
        out ($7f),a          ; write to psg
@@ -429,6 +433,18 @@ rloop  halt                 ; wait for the frame interrupt
 
        xor a
        ld (iflag),a
+
+; This is the main loop
+mloop  call wait
+
+; Update vdp right when vblank begins!
+
+       ld a,(scroll)        ; 1-byte scroll reg. buffer in ram
+       ld b,9               ; target VDP register 9 (v-scroll)
+       call setreg          ; now vdp register = buffer, and the
+                            ; screen scrolls accordingly
+
+
 
 loop:
     jp loop
