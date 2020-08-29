@@ -396,7 +396,7 @@ wait:
 ; Initial values for the 11 vdp registers
 
 regdat:
-    .db$00000110            ; reg. 0, display and interrupt mode
+    .db %00000110           ; reg. 0, display and interrupt mode
                             ; bit 4 = line interrupt (disabled)
                             ; 5 = blank left colum (disabled)
                             ; 6 = hori scroll inhibit (disabled)
@@ -408,16 +408,16 @@ regdat:
                             ; 5 = frame interrupt (enabled)
                             ; 6 = display (blanked)
 
-    .db %ff                 ; reg. 2, name table address
+    .db $ff                 ; reg. 2, name table address
                             ; $ff = name table at $3800
 
-    .db %ff                 ; reg. 3, n.a.
+    .db $ff                 ; reg. 3, n.a.
                             ; always set it to $ff
 
-    .db %ff                 ; reg. 5, sprite attribute table
+    .db $ff                 ; reg. 5, sprite attribute table
                             ; $ff = sprite attrib table at $3F00
 
-    .db %ff                 ; reg. 6, sprite tile address
+    .db $ff                 ; reg. 6, sprite tile address
                             ; $ff = sprite tile in bank 2
 
     .db %11110011           ; reg. 7, border color
