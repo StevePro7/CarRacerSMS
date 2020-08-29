@@ -215,6 +215,35 @@ prepti:
     ld bc,77*32         ; 77 tiles, each tile is 32 bytes
     call vramwr         ; write title screen tiles ot vram
 
+; Set the hiscore y and x position
+
+    ld hl,tshigh        ; point to hiscore init data for title screen
+    ld de,highvp        ; target the (hi-) score set buffer
+    ld bc,5             ; write  vpos bytes (incl. $d0)
+    ldir                ; do it
+    ld hl,tshigh+5      ; point to hiscore init data
+    ld de,highhp        ; target buffer again
+    ld bc,8             ; write 8 hpos and cc bytes
+    ldir
+
+; Create sprite data in the sat buffer for the hiscore sprites
+; and load the updated buffer into vram (screen is off now)
+
+    call upbuf          ; update sat buffer
+    call ldsat          ; load sat in vram with buffer
+
+; Turn screen on
+
+    xor a
+    ld b,9              ; reset scroll value
+    call setreg         ; set register 1
+    
+    ld a,%11110001      ; enable screen + zoomed sprites
+    ld b,1              ; register 1
+    call setreg         ; set register
+
+    ei                  ; turn interrupts on
+
 loop:
     jp loop
 
