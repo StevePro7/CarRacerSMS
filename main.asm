@@ -390,3 +390,87 @@ wait:
     ld (iflag),a
     ret                     ; return
     
+; --------------------------------------------------------------
+; DATA
+; --------------------------------------------------------------
+; Initial values for the 11 vdp registers
+
+regdat:
+    .db$00000110            ; reg. 0, display and interrupt mode
+                            ; bit 4 = line interrupt (disabled)
+                            ; 5 = blank left colum (disabled)
+                            ; 6 = hori scroll inhibit (disabled)
+                            ; 7 = vert scroll inhibit (disabled)
+
+    .db %10100001           ; reg. 1, display and interrupt mode
+                            ; bit 0 = zoomed sprites (enabled)
+                            ; 1 = 8 x 16 sprites (disabled)
+                            ; 5 = frame interrupt (enabled)
+                            ; 6 = display (blanked)
+
+    .db %ff                 ; reg. 2, name table address
+                            ; $ff = name table at $3800
+
+    .db %ff                 ; reg. 3, n.a.
+                            ; always set it to $ff
+
+    .db %ff                 ; reg. 5, sprite attribute table
+                            ; $ff = sprite attrib table at $3F00
+
+    .db %ff                 ; reg. 6, sprite tile address
+                            ; $ff = sprite tile in bank 2
+
+    .db %11110011           ; reg. 7, border color
+                            ; set to color 3 in bank 2
+
+    .db $00                 ; reg. 8, horizontal scroll value = 0
+
+    .db $00                 ; reg. 9, vertical scroll value = 0
+
+    .db $ff                 ; reg. 10, raster line interrupt
+                            ; turn off line int. requests
+
+; Initialization for hiscore and score in the sat buffer.
+
+initsc .db 20 20 20 20
+       .db 36 36 36 36
+       .db 200 $30 208 $30 216 $30 224 $30
+       .db 200 $30 208 $30 216 $30 224 $30
+
+tshigh .db 151 151 151 151 $d0
+       .db 150 0 166 0 182 0 198 0
+
+; Charcodes for player, enemy and invisible car.
+
+plrcar .db 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+crash .db 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47
+encar .db 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+invcar .db 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+; Background assets.
+
+bgpal  .include "assets\background (palette).inc"
+blchar .include "assets\characters_blue (tiles).inc"
+rdchar .include "assets\characters_red (tiles).inc"
+bgtile .include "assets\background (tiles).inc"
+bgmap  .include "assets\background (tilemap).inc"
+
+; Sprite assets.
+
+palspr .include "assets\sprites (palette).inc"
+pltile .include "assets\player (tiles).inc"
+entile .include "assets\enemy (tiles).inc"
+plcras .include "assets\player_crashed (tiles).inc"
+
+; Title screen assets.
+
+timap  .include "assets\title (tilemap).inc"
+titile .include "assets\title (tiles).inc"
+titune .incbin "assets\RacerTitle_V02.psg"
+.include "assets\PSGlib.inc"
+
+
+
+
+
+
