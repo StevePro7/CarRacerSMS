@@ -364,7 +364,7 @@ ldmain  ld a,%10100000      ; turn display off
        
        call quiet           ; kill the noise generator
 
-; Initialize varialbes after each crash
+; Initialize variables after each crash
 
        ld a,50              ; Mae's initial y-coordinate
        ld (maey),a          ; set it
@@ -444,10 +444,146 @@ mloop  call wait
        call setreg          ; now vdp register = buffer, and the
                             ; screen scrolls accordingly
 
+       call ldsat           ; load sat buffer to vram.  The cars
+                            ; and the (hi-)score sprites are
+                            ; updated on the screen
+
+; Test for max score (9999) = player beats the game (and dies)!
+
+       ld b,4               ; test up to 4 score digits
+       ld hl,score          ; point to the first digit
+-      ld a,(hl)            ; load it into accumulator
+       cp 9                 ; is it 9?
+       jp nz,+              ; no - then skip further tests
+       inc hl               ; else - point to next digit
+       djnz -               ; perform the test again
+       jp plrdie            ; fall through = score is 9999!
++
+; Test to see if current score > hiscore
+
+       ld a,(record)        ; load pointer to new record flag
+       cp 0                 ; is it set already (hiscore beaten)?
+       jp z,score0          ; no - go on to test against score
+
+; Hiscore is beaten, so let hiscore mirror score
+
+       ld hl,score          ; point to score
+       ld de,hscore         ; point to hiscore
+       ld bc,$0004          ; 4 bytes (digits) to load
+       ldir                 ; do it!
+       jp endscr
+
+score0 ld de,score          ; point to score
+       ld hl,hscore         ; point to hiscore
+       ld b,4               ; test 4 digits, from left to right
+
+-      ld a,(de)            ; load score digit
+       cp (hl)              ; is hiscore digit > score digit?
+       jp c, endscr         ; yes - break out of loop
+       inc hl               ; no - point to next hiscore digit
+       inc de               ; point to next score digit
+       djnz -               ; compare up to four digits
+
+       ld a,l               ; fall through = new record is set!
+       ld (record),a        ; set the flag, score > hiscore!
+
+; Turn player's car and score bright blue!
+
+       ld a,$11             ; color index of player's car
+       ld b,%00111100       ; bright blue / cyan
+       call setcol          ; set color to make a blue car
+endscr:
+
+; Test for collision between sprites
+
+       ld a,(status)        ; load vdp status (set by interrupt)
+       bit 5,a              ; is the sprite collision bit set?
+       jp nz,plrdie         ; yes - jump out of main loop
+
+; Test if player wants to move right
+
+       call getkey          ; read controller port
+       ld a,(input)         ; read input from ram mirror
+       bit 3,a              ; is right key pressed?
+       jp nz,mpl          ; no - test for left key
+
+       ld a,(plx)            ; get player's hpos (x-coordinate)
+       cp rightb            ; is player over the right border?
+       jp nc,mpl            ; yes - skip to left test
+
+; Move player right
+
+       ld a,(plx)           ; get player x-coordinate
+       add a,hspeed         ; add constant hspeed
+       ld (plx),a           ; update player x-coordinate
+       jp endchk            ; exit key check part
+
+; Test if player wants to move left
+
+mpl    ld a,(input)         ; read input from ram mirror
+       bit 2,a              ; is left key pressed?
+       jp nz,endchk         ; no - end key check
+
+       ld a,(plx)           ; get player's hpos (x-coordinate)
+       cp leftb             ; is player over the left border?
+       jp c,endchk          ; yes - then don't move left
+       
+; Move player left
+
+       ld a,(plx)           ; get player x-coordinate
+       ld b,hspeed          ; load horizontal speed (constant)
+       sub b                ; subtract hspeed from player x
+       ld (plx),a           ; update player x-coordinate
+endchk                      ; end key check
+
+; Update enemy x,y positions
+
+       ld ix,ashdir         ; point to enemy Ash data
+       call enemy           ; move Ash down and left/right
+       ld ix,maedir         ; point to enemy Mae data
+       call enemy           ; move Mae down and left/right
+
+; Handle Mae visibility
+
+       ld a,(maedel)        ; check Mae delay
+       cp $ff               ; is Mae already visible ($ff)?
+       jp z,endmae          ; yes - then skip rest of Mae routine
+       cp 0                 ; else - is delay counter deploeted?
+       jp nz,+              ; no - then skip forward, else...
+
+; Make Mae visible by loading opaque tiles into buffer
+
+       ld hl,encar          ; point to enemy car char codes
+       ld de,maecc          ; point to buffer
+       call carcc           ; load new char codes to buffer
+
++      ld hl,maedel         ; point to Mae delay counter
+       dec (hl)             ; decrement it
+endmae
+
+; Increment score 1 point every frame
+
+       ld hl,score+3        ; point to the ones' digit in score
+       ld b,1               ; load amount to add to digit
+       call addsco          ; add one point to player's score
+
+; Update enemy, player and score sprites in the buffer
+
+       call upbuf           ; update sat buffer
+
+; Scroll background - update the vertical scroll buffer
+
+       ld a,(scroll)        ; get scroll buffer value
+       sub vspeed           ; subtrat vertical speed
+       ld (scroll),a        ; update scroll buffer
+
+       jp mloop             ; jump back for another round
+       
 
 
-loop:
-    jp loop
+plrdie:
+       jp plrdie
+
 
 
 
