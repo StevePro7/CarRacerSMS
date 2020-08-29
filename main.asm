@@ -333,7 +333,7 @@ ldmain  ld a,%10100000      ; turn display off
        ld hl,bgmap          ; point to background tilemap data
        ld bc,32*28*2        ; 32 x 28 tiles, each is 2 bytes
        call vramwr          ; write name table to vram
-       
+
 ; Make a standard enemy car for Ash and put it in the buffer
 
        ld de,ashcc          ; point to Ash char codes in buffer
@@ -349,11 +349,86 @@ ldmain  ld a,%10100000      ; turn display off
        ld a,$14             ; hiscore digit color
        ld b,%00110101       ; set them to default blue
        call setcol          ; do it
-       
+
 ; Put a shining new player car in the buffer
 
+       ld de,plrcc          ; point to player cc in buffer
+       ld hl,plrcar         ; point to player car graphics
+       call carcc           ; set the char codes for player car
 
+; Make Mae invisible - put transparent tiles in the buffer
+
+       ld de,maecc          ; point to Mae cc in buffer
+       ld hl,invcar         ; point to transparent car graphics
+       call carcc           ; make Mae invisible (transparent)
        
+       call quiet           ; kill the noise generator
+
+; Initialize varialbes after each crash
+
+       ld a,50              ; Mae's initial y-coordinate
+       ld (maey),a          ; set it
+       ld a,230             ; Mae is invisible until delay = 0
+       ld (maedel),a        ; set Mae invisibility delay
+       ld a,193             ; Ash's initial y-coordiate
+       ld (ashy),a          ; set it
+       ld a,79              ; player starts at the road's center
+       ld (plx),a           ; set x co-ordinate
+       
+       xor a                ; set A = 0
+       ld (record),a        ; reset hiscore beaten flag
+       ld (scroll),a        ; reset scroll register buffer
+       ld (frame),a         ; reset frame counter
+       
+       ld hl,endspr         ; point to end of active sprites
+       ld (hl),$d0          ; insert sprite terminator here
+
+; Initialize score counter to 0000
+
+       ld a,0               ; value to write to digit
+       ld b,4               ; we have 4 digits
+       ld hl,score          ; point to score data
+-      ld (hl),a            ; reset digit (write value 0)
+       inc hl               ; next digit
+       djnz -               ; do it for all 4 digits
+       
+       call upbuf           ; update buffer for cars and digits
+       
+       ei                   ; enable frame interrupt (vblank)
+       halt                 ; wait for it to happen
+       call ldsat           ; load sat from buffer
+       
+       ld a,%11100000       ; turn screen on - normal sprites
+       ld b,1
+       call setreg          ; set register 1
+       
+       ld a,150             ; set 'back to title screen'-delay
+       ld (frame),a         ; and load it into counter
+
+; 'Ready loop' - wait until the player presses button 1
+; The player's car is on the road, waiting for the button press
+rloop  halt                 ; wait for the frame interrupt
+
+; Jump back to title screen if the counter is depleted
+
+       ld hl,frame          ; point to counter
+       dec (hl)             ; decrement it
+       jp z,prepti          ; is it 0? - Jump to title screen
+
+; Proceed to main loop if the player presses start button
+
+       call getkey          ; read controller port into ram
+       ld a,(input)         ; read input from ram mirror
+       bit 4,a              ; is button 1 pressed?
+       jp nz,rloop          ; yes - fall through to main loop!
+
+       ld a,%11110110       ; turn noise volume up to 12 db
+       out ($7f),a          ; write to psg
+       ld a,%11100110       ; make coarse noise - go car engine!
+       out ($7f),a          ; write to psg
+
+       xor a
+       ld (iflag),a
 
 loop:
     jp loop
