@@ -591,18 +591,19 @@ plrdie ld a,85              ; set death delay
 
        ld hl,crash          ; point to crashed car graphics
        ld de,plrcc          ; point to player cc buffer start
-       call carcc           ; set the player's sprites to crash!
+       call carcc           ; set the player's sprite to crash!
 
 ; This is the death loop
 
 dloop  call wait            ; start dead loop with vblank
-       call ldsat           ; update the score
+       call ldsat           ; load sprite attribute table
+       call upbuf           ; update the score
 
-; Move enemy Ash fast upwards to create the effect of enemy cars
+; Move enemy Ash fast upwards to create teh effect of enemy cars
 ; coming from behind when player is crashed
 
        ld a,(ashy)          ; load Ash vertical position
-       cp 192               ; is Ash's y-coordinate = 192
+       cp 192               ; is Ash's y-coordinate = 192?
        jp z,+               ; yes - don't move him anymore
                             ; (he now hides below the screen)
 
@@ -625,7 +626,7 @@ dloop  call wait            ; start dead loop with vblank
        ld a,(frame)         ; point to counter (death delay)
        cp 0                 ; is it 0?
        jp z,ldmain          ; yes - jump back and respawn player
-       dec a                ; decremeent the counter
+       dec a                ; decrement the counter
 
 ; Check if we should kill the crash sound
 
@@ -634,8 +635,7 @@ dloop  call wait            ; start dead loop with vblank
        cp 30                ; is it up?
        call z,quiet         ; yes - turn off crash sound
 
-       jp dloop             ; another round of death...       
-
+       jp dloop             ; another round of death...
 
 ; --------------------------------------------------------------
 ; SUBROUTINES
