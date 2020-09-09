@@ -23,7 +23,7 @@ Titlescreen and celebration are hand-drawn, digitized images, converted with
 Maxim's BMP2Tile. The racing car sprites are modified versions of sprites from
 Super Monaco GP.
 */
-.sdsctag 2.0, "Racer - rebooted", ReleaseNotes, "Anders S. Jensen"
+.sdsctag 2.0, "Racer - rebooted", "ReleaseNotes", "Anders S. Jensen"
 .memorymap
     defaultslot 0
     slotsize $8000
@@ -140,7 +140,7 @@ Super Monaco GP.
 .struct EnemyObject
     y db                ; 0 (ix+0)...
     x db                ; 1
-    metasprite db       ; 2
+    metasprite dw       ; 2
     cel db              ; 4
     index db            ; 5
     movement db         ; 6
@@ -171,7 +171,7 @@ Super Monaco GP.
    PlayerCel db          ; Whih animation cel is currently playing?
    PlayerIndex db        ; Which SAT buffer slot does the player occupy?
    PlayerHitCounter db   ; Player can slightly touch the enemies...
-   Ash INSTANCEOF EnemyObject   ; The gree enemy cars...
+   Ash INSTANCEOF EnemyObject   ; The three enemy cars...
    May INSTANCEOF EnemyObject
    Iris INSTANCEOF EnemyObject
    GameModeCounter dw    ; Counting up to the hard mode threshold.
@@ -180,6 +180,26 @@ Super Monaco GP.
    Cycle db              ; Used by the color cycle routine at the title.
    Counter db            ; Used for title animation.
 .ends
+
 ; =============================================================================
 ; L I B R A R I E S
 ; =============================================================================
+.include "Support/stdlib.inc"   ; General/supporting routines.
+.include "Support/PSGlib.inc"   ; sverx's psg library.
+
+; =============================================================================
+; R O M
+; =============================================================================
+.bank 0 slot 0
+.org 0
+    di
+    im 1
+    ld sp,STACK_INIT_ADDRESS
+    jp Control
+; ---------------------
+.org $0020              ; rst $20
+    
+    
+    
+.section "Main control structure" free
+Control:
