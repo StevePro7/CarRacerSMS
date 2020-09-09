@@ -95,3 +95,149 @@ PrepareVRAM:
     pop af
     ret
 .ends
+
+; --------------------------------------------------------------
+.section "Load VRAM" free
+; --------------------------------------------------------------
+; LOAD VRAM.
+; Load BC amount of bytes from data source pointed to by HL.
+; Tip: Prepare VRAM before calling.
+LoadVRAM:
+    ld a,(hl)
+    out ($be),a
+    inc hl
+    dec bc
+    ld a,c
+    or b
+    jp nz,LoadVRAM
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Fill memory" free
+; --------------------------------------------------------------
+; FILL MEMORY.
+; Overwrite a chunk of memory with a specified byte value.
+; HL = base address, BC = area size, A = fill byte.
+; Used by ClearRam.
+FillMemory:
+    ld (hl),a
+    ld d,h
+    ld e,l
+    inc de
+    dec bc
+    ld a,b
+    or c
+    ret z
+    ldir
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Set VDP Register" free
+; --------------------------------------------------------------
+; SET VDP REGISTER.
+; Write to target register.
+; A = byte to be loaded into vdp register.
+; B = target register 0-10.
+SetRegister:
+    out ($bf),a
+    ld a,$80
+    or b
+    out ($bf),a
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Get Vector" free
+; --------------------------------------------------------------
+; GET VECTOR.
+; Vector table based switch-like control structure.
+; A = expression, DE = vector table (word-sized vectors).
+; Return vector in HL for a jp (hl) opcode.
+GetVector:
+    sla a
+    ld h,0
+    ld l,a
+    add hl,de
+    ld a,(hl)
+    inc hl
+    ld h,(hl)
+    ld l,a
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Wait for frame interrupt" free
+; --------------------------------------------------------------
+; WAIT FOR FRAME INTERRUPT.
+; This will wait exclusively for the frame interrupt.
+; Unlike the 'halt' opcode. Assumes the variable VDPStatus is set by
+; the interrupt handler. Clears bit 7 of VDPStatus upon return.
+WaitForFrameInterrupt:
+    ld a,(VDPStatus)
+    bit 7,a
+    jp z,WaitForFrameInterrupt
+    res 7,a
+    ld (VDPStatus),a
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Read Joysticks" free
+; --------------------------------------------------------------
+; READ JOYSTICKS.
+; Read the two joystick ports (port $dc and $dd) into ram.
+
+ReadJoysticks:
+    in a,$dc
+    ld (Joystick1),a
+    in a,$dd
+    ld (Joystick2),a
+    ret
+.ends
+
+; --------------------------------------------------------------
+.section "Get Word" free
+; --------------------------------------------------------------
+; GET WORD.
+; Return an element from a word-sized table.
+; Entry: A = Index, HL = Pointer to table.
+; Exit: HL contains the element in the byte order it was stored.
+GetWord:
+    sla a           ; Multiply by 2 because the elements are words.
+    ld d,0
+    ld e,a
+    add hl,de       ; Now HL points to the element.
+    ld a,(hl)
+    ld e,a
+    inc hl
+    ld a,(hl)
+    ld d,a
+    ex de,hl
+    ret
+.ends
+
+; -----------------------------------------------------------------------------
+.section "Clear Ram" free
+; -----------------------------------------------------------------------------
+; Write zeroes to ram, and then use the zeroed ram to clear vram.
+ClearRam:
+    ; Overwrite 4K of RAM with zeroes.
+    ld hl,$c000
+    ld bc,$1000
+    ld a,0
+    call FillMemory
+    
+    ; Use the initialized ram to clear all of vram.
+    ld hl,$0000
+    rst $20
+    ld b,4
+-   push bc
+    ld hl,$c000
+    ld bc,$1000
+    call LoadVRAM
+    pop bc
+    djnz -
+    ret
+.ends
