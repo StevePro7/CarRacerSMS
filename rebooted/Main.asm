@@ -197,9 +197,269 @@ Super Monaco GP.
     ld sp,STACK_INIT_ADDRESS
     jp Control
 ; ---------------------
-.org $0020              ; rst $20
-    
-    
-    
+.org $0020              ; rst $20: Prepare vram at address in HL.
+    ld a,l              ; Refer to the PrepareVram macro.
+    out (VDP_CONTROL),a
+    ld a,h
+    or $40
+    out (VDP_CONTROL),a
+    ret
+; ---------------------
+.org VDP_INTERRUPT_ADDRESS
+    ex af,af'
+    exx
+    in a,VDP_CONTROL
+    ld (VDPStatus),a
+    exx
+    ex af,af'
+    ei
+    ret
+; ---------------------
+.org PAUSE_INTERRUPT_ADDRESS
+    retn
+; ---------------------
 .section "Main control structure" free
 Control:
+    call InitializeFramework
+    
+    
+    
+dead:
+    jp dead
+    
+    
+; ---------------------
+.section "Initialize" free
+InitializeFramework:
+    call ClearRam
+    call PSGInit
+    ld hl,RegisterInitValues
+    call LoadVDPRegisters
+    
+
+; ---------------------
+.section "VDP functions" free
+LoadVDPRegisters:
+    ld b,ALL_VDP_REGISTERS
+    ld c,VDP_WRITE_REGISTER_COMMAND
+-:  ld a,(hl)               ; HL = Pointer to 11 bytes of data.
+    out (VDP_CONTROL),a
+    ld a,c
+    out (VDP_CONTROL),a
+    inc hl
+    inc c
+    djnz -
+    ret
+LoadImage:
+    ld hl,ADDRESS_OF_FIRST_TILE
+    PrepareVram
+    ld l,(ix+0)             ; Load pointer to first tile into HL.
+    ld h,(ix+1)
+    ld c,(ix+2)             ; Load amount of tiles into BC.
+    ld b,(ix+3)
+    call LoadVRAM
+    ld hl,TILEMAP_ADDRESS   ; Load tilemap.
+    PrepareVram
+    ld l,(ix+4)             ; Load pointer to first tilemap word into HL.
+    ld h,(ix+5)
+    ld c,(ix+6)             ; Amount of bytes to load.
+    ld b,(ix+7)
+    call LoadVRAM
+    ld hl,PALETTE_ADDRESS
+    PrepareVram
+    ld l,(ix+8)             ; Load pointer to palette data into HL.
+    ld h,(ix+9)
+    ld c,(ix+10)            ; Load amount of colors into BC.
+    ld b,(ix+11)
+    call LoadVRAM
+    ret
+LoadSAT:
+    ld hl,SAT_Y_TABLE
+    PrepareVram
+    ld hl,SpriteBufferY
+    ld c,VDP_DATA
+    call Outi_64
+    ld hl,SAT_XC_TABLE
+    PrepareVram
+    ld hl,SpriteBufferXC
+    ld c,VDP_DATA
+    call Outi_128
+    ret
+LoadNameTable:
+    ld hl,SCORE_DIGIT_1_ADDRESS
+    PrepareVram
+    ld hl,ScoreBuffer
+    ld c,VDP_DATA
+    Outi_x4
+    ld hl,SCORE_DIGIT_1_ADDRESS+64
+    PrepareVram
+    ld hl,ScoreBuffer+4
+    Outi_x4
+
+    ld hl,TODAYS_BEST_SCORE_DIGIT_1_ADDRESS
+    PrepareVram
+    ld hl,TodaysBestScoreBuffer
+    ld c,VDP_DATA
+    Outi_x4
+    ld hl,TODAYS_BEST_SCORE_DIGIT_1_ADDRESS+64
+    PrepareVram
+    ld hl,TodaysBestScoreBuffer+4
+    Outi_x4
+    ret
+.ends
+; ---------------------
+.section "Data" free
+Engine:
+   .incbin "Race\Engine.psg"
+Engine2:
+   .incbin "Race\Engine2.psg"
+Crash:
+   .incbin "Race\Crash.psg"
+NewBestScoreSFX:
+   .incbin "Race\NewBestScore.psg"
+Intro:
+   .incbin "Race\Intro.psg"
+CelebrateSound:
+   .incbin "Race\Celebrate.psg"
+
+PaletteTable:            ; Used to color-cycle the title letters.
+   .db ORANGE ORANGE ORANGE ORANGE ORANGE DUMMY DUMMY DUMMY
+   .db RED ORANGE ORANGE ORANGE ORANGE DUMMY DUMMY DUMMY
+   .db ORANGE RED ORANGE ORANGE ORANGE DUMMY DUMMY DUMMY
+   .db ORANGE ORANGE RED ORANGE ORANGE DUMMY DUMMY DUMMY
+   .db ORANGE ORANGE ORANGE RED ORANGE DUMMY DUMMY DUMMY
+   .db ORANGE ORANGE ORANGE ORANGE RED DUMMY DUMMY DUMMY
+
+PlayerCel0:
+   .db 0 0 0 0 16 16 16 16 ; Y-offset.
+   .db 0 64 8 66 16 68 24 70 0 72 8 74 16 76 24 78 ; X-offset + char pairs.
+PlayerCel1:
+   .db 0 0 0 0 16 16 16 16
+   .db 0 88 8 66 16 68 24 90 0 92 8 74 16 76 24 94
+PlayerCel2:
+   .db 0 0 0 0 16 16 16 16
+   .db 0 80 8 66 16 68 24 82 0 84 8 74 16 76 24 86
+PlayerCelTable:
+   .dw PlayerCel0
+   .dw PlayerCel1
+   .dw PlayerCel2
+
+; Enemies
+DisabledCar:             ; Character 0 is totally transparent.
+   .db 0 0 0 0 0 0 0 0
+   .db 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+GreenCarCel0:
+   .db 0 0 0 0 16 16 16 16 ; Y-offset.
+   .db 0 32 8 34 16 36 24 38 0 40 8 42 16 44 24 46 ; X-offset + chars.
+GreenCarCel1:
+   .db 0 0 0 0 16 16 16 16
+   .db 0 56 8 34 16 36 24 58 0 60 8 42 16 44 24 62
+GreenCarCel2:
+   .db 0 0 0 0 16 16 16 16
+   .db 0 48 8 34 16 36 24 50 0 52 8 42 16 44 24 54
+EnemyCelTable:
+   .dw GreenCarCel0
+   .dw GreenCarCel1
+   .dw GreenCarCel2
+RespawnTable:            ; X-positions for enemy respawn.
+   .db 20 40 60 80 100 120 140 150
+   .db 25 43 63 83 92 102 119 145
+   .db 28 44 64 108 126 140 98 123 142
+   .db 30 46 66 86 140 84 95 105
+
+RacetrackTiles:
+   .include "Race\rt_tiles.inc"
+RacetrackTilesEnd:
+RacetrackTilemap:
+   .include "Race\rt_tilemap.inc"
+RacetrackPalette:
+   .include "Race\rt_palette.inc"
+RacetrackPaletteEnd:
+PlayerCar_Tiles:
+   .include "Race\PlayerCar_tiles.inc"
+ScoreDigits_Tiles:
+   .include "Race\ScoreDigits_tiles.inc"
+EnemyCar_Tiles:
+   .include "Race\EnemyCar_tiles.inc"
+Sprites_Palette:
+   .include "Race\Sprites_palette.inc"
+RacetrackMockupData:
+   .dw RacetrackTiles    ; Pointer to tile data.
+   .dw RacetrackTilesEnd-RacetrackTiles ; Tile data (bytes) to write.
+   .dw RacetrackTilemap ; Pointer to tilemap data.
+   .dw WHOLE_NAMETABLE  ; Overwrite the whole nametable.
+   .dw RacetrackPalette ; Pointer to palette.
+   .dw RacetrackPaletteEnd-RacetrackPalette ; Amount of colors.
+
+TitlescreenTiles:
+   .include "Title\Titlescreen_tiles.inc"
+TitlescreenTilesEnd:
+TitlescreenTilemap:
+   .include "Title\Titlescreen_tilemap.inc"
+TitlescreenPalette:
+   .include "Title\Titlescreen_palette.inc"
+TitlescreenPaletteEnd:
+TitlescreenImageData:
+   .dw TitlescreenTiles  ; Pointer to tile data.
+   .dw TitlescreenTilesEnd-TitlescreenTiles ; Tile data (bytes) to write.
+   .dw TitlescreenTilemap ; Pointer to tilemap data.
+   .dw VISIBLE_PART_OF_SCREEN ; Amount of bytes to write to tilemap.
+   .dw TitlescreenPalette ; Pointer to palette.
+   .dw TitlescreenPaletteEnd-TitlescreenPalette ; Amount of colors.
+
+CelebrationscreenTiles:
+   .include "Celebrate\celebrate_tiles.inc"
+CelebrationscreenTilesEnd:
+CelebrationscreenTilemap:
+   .include "Celebrate\celebrate_tilemap.inc"
+CelebrationscreenPalette:
+   .include "Celebrate\celebrate_palette.inc"
+CelebrationscreenPaletteEnd:
+CelebrationscreenImageData:
+   .dw CelebrationscreenTiles  ; Pointer to tile data.
+   .dw CelebrationscreenTilesEnd-CelebrationscreenTiles ; Tile data (bytes) to write.
+   .dw CelebrationscreenTilemap ; Pointer to tilemap data.
+   .dw VISIBLE_PART_OF_SCREEN ; Amount of bytes to write to tilemap.
+   .dw CelebrationscreenPalette ; Pointer to palette.
+   .dw CelebrationscreenPaletteEnd-CelebrationscreenPalette ; Amount of colors.
+
+RegisterInitValues:
+   .db %10000110         ; reg. 0, display and interrupt mode.
+                         ; bit 3 = shift sprites to the left (disabled).
+                         ; 4 = line interrupt (disabled - see register 10).
+                         ; 5 = blank left column (disabled).
+                         ; 6 = hori. scroll inhibit (disabled).
+                         ; 7 = vert. scroll inhibit (enabled).
+   .db %11100000         ; reg. 1, display and interrupt mode.
+                         ; bit 0 = zoomed sprites (disabled).
+                         ; 1 = 8 x 16 sprites (disabled).
+                         ; 5 = frame interrupt (enabled).
+                         ; 6 = display (enabled).
+   .db $ff               ; reg. 2, name table address.
+                         ; $ff = name table at $3800.
+   .db $ff               ; reg. 3, n.a. (always set it to $ff).
+   .db $ff               ; reg. 4, n.a. (always set it to $ff).
+   .db $ff               ; reg. 5, sprite attribute table.
+                         ; $ff = sprite attrib. table at $3F00.
+   .db $ff               ; reg. 6, sprite tile address.
+                         ; $ff = sprite tiles in bank 2.
+   .db %11110000         ; reg. 7, border color.
+                         ; set to color 0 in bank 2.
+   .db $00               ; reg. 8, horizontal scroll value = 0.
+   .db $00               ; reg. 9, vertical scroll value = 0.
+   .db $ff               ; reg. 10, raster line interrupt. (disabled).
+ReleaseNotes:
+   .db "...." 0
+.ends
+; ---------------------
+.section "Outiblock" free
+Outi_128:                ; Used to fastload SAT XC.
+   .rept 64
+   outi
+   .endr
+Outi_64:                 ; Used to fastload SAT Y.
+   .rept 64
+   outi
+   .endr
+   ret
+.ends
