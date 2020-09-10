@@ -285,9 +285,51 @@ TitlescreenLoop:
     bit PLAYER1_START,a
     ret z
     jp TitlescreenLoop
-    
-    
+AnimateTitle:
+    ld a,(Counter)          ; Is it time for a color cycle...?
+    add a,64
+    ld (Counter),a
+    cp 0
+    call z,DoColorCycle
+    ret
+DoColorCycle:
+    ld c,VDP_CONTROL        ; Prepare vram at the correct color in the palette.
+    ld a,$06
+    out (c),a
+    or %11000000
+    out (c),a
+    ld c,VDP_DATA
+    ld d,0
+    ld a,(Cycle)
+    inc a
+    cp 6                    ; Each letter + one all orange.
+    jp nz,+
+    xor a
++:
+    ld (Cycle),a
+    add a,a
+    add a,a
+    add a,a                 ; Cycle counter times 8,
+    ld e,a                  ; - it's an 8 byte element table here!
+    ld hl,PaletteTable
+    add hl,de               ; Apply the offset.
+    Outi_x4
+    Outi_x4
+    ret
 .ends  
+; ---------------------
+.section "Misc functions" free
+Housekeeping:
+    call ReadJoysticks
+    call IncrementFrameCounter
+    ld hl,RandomSeed        ; Modify LSB of seed every frame.
+    inc (hl)
+    ret
+IncrementFrameCounter:
+    ld hl,FrameCounter
+    inc (hl)
+    ret
+.ends
 ; ---------------------
 .section "VDP functions" free
 LoadVDPRegisters:
