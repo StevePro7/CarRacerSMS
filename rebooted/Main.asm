@@ -685,12 +685,55 @@ IncrementScore:
    ld (Score),a
    ret
 MoveEnemyHorizontally:
+   ld a,(ix+6)                ; Get direction
+   cp GOING_RIGHT
+   jp nz,+
+   call MoveEnemyRight
+   ret
++:
+   cp GOING_LEFT
+   call z,MoveEnemyLeft
+   ret
+MoveEnemyRight:
+   ld a,(ix+1)                ; Get enemy x-position.
+   cp ENEMY_RIGHT_BORDER
+   jp c,+
+   call ToggleEnemyDirection
+   ret
++:
+   add a,ENEMY_HORIZONTAL_SPEED
+   ld (ix+1),a
+   ret
+MoveEnemyLeft:
+   ld a,(ix+1)                ; Get enemy x-position.
+   cp ENEMY_LEFT_BORDER
+   jp nc,+
+   call ToggleEnemyDirection
+   ret
++:
+   sub ENEMY_HORIZONTAL_SPEED
+   ld (ix+1),a
+   ret
+ToggleEnemyDirection:
+   ld a,(ix+6)                ; Get enemy direction.
+   cp GOING_LEFT
+   jp nz,+
+   ld a,GOING_RIGHT
+   ld (ix+6),a
+   ret
++:
+   ld a,GOING_LEFT
+   ld (ix+6),a
+   ret
+ResetEnemy:
+
+   
    
 AnimateEnemies:
 
 
 
-ResetEnemy:
+
 
 
 .ends
