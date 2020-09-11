@@ -171,7 +171,7 @@ Super Monaco GP.
    PlayerCel db          ; Whih animation cel is currently playing?
    PlayerIndex db        ; Which SAT buffer slot does the player occupy?
    PlayerHitCounter db   ; Player can slightly touch the enemies...
-   Ash INSTANCEOF EnemyObject   ; The three enemy cars...
+   Ash INSTANCEOF EnemyObject ; The three enemy cars...
    May INSTANCEOF EnemyObject
    Iris INSTANCEOF EnemyObject
    GameModeCounter dw    ; Counting up to the hard mode threshold.
@@ -228,6 +228,8 @@ ShowTitleScreen:
     ld (AttemptCounter),a
 Racetrack:
    call PrepareRace
+   call GetReady
+   call MainLoop
 
     
 dead:
@@ -252,7 +254,7 @@ PrepareRace:
    call UpdateNameTableBuffers
    call LoadSAT            ; Load the sprite attrib. table from the buffers.
    call LoadNameTable
-   ld a,SPRITE_COLOR_1     ; Color the border\
+   ld a,SPRITE_COLOR_1     ; Color the border
    ld b,VDP_REGISTER_7
    call SetRegister
    ld a,TURN_SCREEN_ON_TALL_SPRITES
@@ -281,7 +283,7 @@ InitializeSprites:
    call LoadVRAM
    call InitializePlayer
    call InitializeEnemies
-
+   ret
 InitializeGeneralVariables:
    xor a
    ld (CollisionFlag),a
@@ -293,7 +295,8 @@ InitializeGeneralVariables:
    ld (GameMode),a
    ld hl,START_SCORE          ; Put a zero in both of the player's score digits.
    ld (Score),hl
-GetReady:                     ; Wait a little befor the action starts.
+   ret
+GetReady:                     ; Wait a little before the action starts.
    ld hl,Engine
    call PSGSFXPlay            ; Play the hrmmm.. hrm.... hrrrrmmmm. sound.
    ld b,GET_READY_DELAY
@@ -307,8 +310,208 @@ GetReady:                     ; Wait a little befor the action starts.
    call PSGSFXPlayLoop
    ret
 ; ---------------------
-      UpdateSATBuffers:
+MainLoop:
+   call WaitForFrameInterrupt
+   call DetectCollision       ; Set CollisionFlag if two hardware sprites overlap.
+   ld a,(CollisionFlag)       ; Respond to collision flag.
+   cp FLAG_UP                 ; Return to control loop upon collision.
+   ret z
+   call LoadSAT               ; Load Sprite Attrib. Table from the buffers.
+   ld a,(Scroll)
+   ld b,VDP_VERTICAL_SCROLL_REGISTER
+   call SetRegister           ; Load the vertical scroll register.
+   call LoadNameTable         ; Load selected parts of the name table (the score).
+   call Housekeeping          ; General housekeeping.
+   call HandleBestScore       ; Respond to score > todays best score.
+   ld a,(GameBeatenFlag)      ; Return to control loop if score is 99 + 1.
+   cp FLAG_UP
+   ret z
+   call HandleGameModeCounter ; Is it time to switch to hard mode yet?
+   call MovePlayer            ; Move the player car.
+   call MoveEnemies           ; Move the three enemies.
+   call ScrollRacetrack       ; Update the scroll register buffer.
+   call AnimatePlayer         ; The player car has three animation cels (wheels).
+   call AnimateEnemies        ; ... and so does the enemies.
+   call UpdateSATBuffers      ; Compute and buffer the hardware sprites.
+   call UpdateScoreBuffer     ; Compute and buffer the name table elements.
+   call UpdateTodaysBestScoreBuffer ;  ...
+   call PSGFrame              ; Play music.
+   call PSGSFXFrame           ; Play sound effects.
+   jp MainLoop                ; Do it all again...
+DetectCollision:
+   ld a,(VDPStatus)           ; Check for sprite collision.
+   bit SPRITE_COLLISION_BIT,a
+   jp nz,+
+   xor a
+   ld (PlayerHitCounter),a
+   ret
++:
+   ld a,(PlayerHitCounter)
+   inc a
+   ld (PlayerHitCounter),a
+   cp PLAYER_HITCOUNTER_MAX
+   ret nz
+   ld a,FLAG_UP
+   ld (CollisionFlag),a
+   ret                        ; Return from main loop.
+HandleBestScore:
+   ld a,(NewBestScoreFlag)
+   cp FLAG_UP
+   jp nz,+
+   ld hl,Score                ; If today's best score is beaten, copy the current
+   ld de,TodaysBestScore      ; score to today's best score every frame, else...
+   ldi
+   ldi
+   ret 
++:                            ; If it is not already beaten, see if it happens now!
+   ld a,(TodaysBestScore)
+   ld b,a
+   ld a,(Score)
+   sub b
+   ret c
+   cp 1
+   jp z,+
+   ld a,(TodaysBestScore+1)   ; First digit is equal or higher...
+   ld b,a
+   ld a,(Score+1)
+   cp b
+   ret z
+   ret c
++:
+   ld a,FLAG_UP               ; Second digit is higher = best score is beaten!
+   ld (NewBestScoreFlag),a
+   ld hl,NewBestScoreSFX      ; Play the little jingle.
+   call PSGPlayNoRepeat
+   ret
+HandleGameModeCounter:        ; Add 1 to a counter every frame. As it reaches 255,
+   ld a,(GameMode)            ; increment another byte-sized counter. Compare the
+   cp HARD_MODE               ; second counter against the HARD_MODE_THRESHOLD.
+   ret z
+   ld a,(GameModeCounter)
+   inc a
+   ld (GameModeCounter),a
+   cp 255
+   ret nz
+   ld a,(GameModeCounter+1)
+   inc a
+   ld (GameModeCounter+1),a
+   cp HARD_MODE_THRESHOLD
+   ret nz
+   ld a,HARD_MODE
+   ld (GameMode),a
+   ret
+ScrollRacetrack:              ; Load new vertical scroll value into the buffer.
+   ld a,(Scroll)
+   sub PLAYER_VERTICAL_SPEED
+   ld (Scroll),a
+   ret
+AnimateCar:                   ; Used by both player and enemy cars.
+   push hl                    ; Save pointer to meta sprite data.
+   ld a,(ix+4)                ; Get current cel.
+   inc a
+   cp MAX_CELS+1
+   jp nz,+
+   xor a                      ; Overflow - back to first cel.
++:
+   ld (ix+4),a                ; Save the new cel number to ram.
+   add a,a                    ; Get the word-sized table element (the address).
+   ld l,a
+   ld h,0
+   add hl,bc                  ; BC holds the cel table.
+   ld e,(hl)
+   inc hl
+   ld d,(hl)
+   pop hl                     ; Retrieve pointer to meta sprite data.
+   ld (hl),e
+   inc hl
+   ld (hl),d
+   ret
 UpdateNameTableBuffers:
+   call UpdateScoreBuffer
+   call UpdateTodaysBestScoreBuffer
+   ret
+UpdateScoreBuffer:
+   ld a,(Score)
+   add a,a
+   add a,SCORE_TILE_OFFSET
+   ld ix,ScoreBuffer
+   ld (ix+0),a
+   inc a
+   ld (ix+4),a
+   ld a,(Score+1)
+   add a,a
+   add a,SCORE_TILE_OFFSET
+   ld ix,ScoreBuffer+2
+   ld (ix+0),a
+   inc a
+   ld (ix+4),a
+   ret
+UpdateTodaysBestScoreBuffer:
+   ld a,(TodaysBestScore)
+   add a,a
+   add a,SCORE_TILE_OFFSET
+   ld ix,TodaysBestScoreBuffer
+   ld (ix+0),a
+   inc a
+   ld (ix+4),a
+   ld a,(TodaysBestScore+1)
+   add a,a
+   add a,SCORE_TILE_OFFSET
+   ld ix,TodaysBestScoreBuffer+2
+   ld (ix+0),a
+   inc a
+   ld (ix+4),a
+   ret
+ UpdateSATBuffers:
+   ld ix,PlayerY
+   call UpdateCar
+   ld ix,Ash
+   call UpdateCar
+   ld ix,May
+   call UpdateCar
+   ld ix,Iris
+   call UpdateCar
+   ret
+UpdateCar:
+   call HandleY                  ; Calc. y-positions and load them to SpriteBufferY.
+   call HandleXC                 ; Calc. and load x-positions and character codes.
+   ret
+HandleY:
+   ld hl,SpriteBufferY
+   ld a,(ix+5)                   ; Get the car's index.
+   add a,a                       ; Start writing at buffer offset 8 x index.
+   add a,a
+   add a,a
+   ld d,0
+   ld e,a
+   add hl,de
+   ex de,hl                      ; DE points to first y-pos in buffer.
+   ld b,8
+   ld a,(ix+0)                   ; Get the car's y-position.
+   ld c,a                        ; Save it in register C.
+   ld h,(ix+3)                   ; Get the meta sprite data pointer,
+   ld l,(ix+2)                   ; and store it in HL.
+-:
+   ld a,(hl)                     ; Read offset.
+   add a,c                       ; Apply saved y-position to offset.
+   ld (de),a
+   inc de
+   inc hl
+   djnz -                        ; Perform all 8 loops, then continue...
+   ret
+HandleXC:
+AnimateEnemies:
+AnimatePlayer:
+
+
+MovePlayer:
+MoveEnemies:
+
+
+
+
+
+
 
 
 InitializePlayer:
