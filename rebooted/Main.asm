@@ -500,22 +500,70 @@ HandleY:
    djnz -                        ; Perform all 8 loops, then continue...
    ret
 HandleXC:
+   ld h,(ix+3)                   ; Get the meta sprite data pointer,
+   ld l,(ix+2)                   ; and store it in HL.
+   ld d,0                        ; Now skip the first 8 bytes (the y-positions).
+   ld e, 8
+   add hl,de
+   push hl                       ; Save the offset source pointer on the stack.
+   ld hl,SpriteBufferXC          ; Set up a destination pointer in the buffer.
+   ld a,(ix+5)
+   add a,a                       ; Offset = 16 x index.
+   add a,a
+   add a,a
+   add a,a
+   ld d,0
+   ld e,a
+   add hl,de
+   ex de,hl                      ; DE points to where we willwrite the first XC pair.
+   ld b,8
+   ld a,(ix+1)                   ; Get the car's x-position.
+   ld c,a                        ; Save it in register C.
+   pop hl                        ; Retrieve the meta sprite source pointer from stack.
+-:
+   ld a,(hl)                     ; Read offset.
+   add a,c                       ; Apply saved x-position to offset.
+   ld (de),a                     ; Save this to the buffer.
+   inc de
+   inc hl
+   ld a,(hl)                     ; Get the character code.
+   ld (de),a                     ; Save this in the buffer
+   inc de
+   inc hl
+   djnz -                        ; Perform all 8 loops, then continue...
+   ret
+Death:     
+   ld a,(GameBeatenFlag)
+   cp FLAG_UP
+   jp z,+                        ; Don't play crash sound if player beats the game!
+   call PSGSFXStop
+   ld hl,Crash
+   call PSGPlayNoRepeat
++:
+   ld b,DEATH_DELAY
+-:
+   push bc
+   call PSGFrame
+   pop bc
+   halt
+   djnz -
+   ld hl,Sprites_Palette
+   ld b,SPRITE_PALETTE_SIZE
+   ld a,START_OF_SPRITE_PALETTE
+   call FadeOutScreen
+   ret
+.ends
+; ---------------------
+.section "The player" free
+InitializePlayer:
+   ld hl,FIRST_PLAYER_TILE
+InitializeEnemies:
 AnimateEnemies:
 AnimatePlayer:
 
 
 MovePlayer:
 MoveEnemies:
-
-
-
-
-
-
-
-
-InitializePlayer:
-InitializeEnemies:
 
 .ends
 
