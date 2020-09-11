@@ -226,13 +226,50 @@ ShowTitleScreen:
     call TitlescreenLoop
     xor a
     ld (AttemptCounter),a
-    
+Racetrack:
+   call PrepareRace
 
     
 dead:
     jp dead
     
 .ends
+
+; ---------------------
+.section "Racetrack code" free
+PrepareRace:
+   di
+   ld a,TURN_SCREEN_OFF
+   ld b,VDP_REGISTER_1
+   call SetRegister
+   call InitializeGeneralVariables
+   call PSGStop
+   call PSGSFXStop
+   call InitializeBackground
+   call InitializeSprites
+   call UpdateSATBuffers
+   call UpdateNameTableBuffers
+   call LoadSAT            ; Load the sprite attrib. table from the buffers.
+   call LoadNameTable
+   ld a,SPRIITE_COLOR_1    ; Color the border\
+   ld b,VDP_REGISTER_7
+   call SetRegister
+   ld a,TURN_SCREEN_ON_TALL_SPRITES
+   ld b,VDP_REGISTER_1
+   call SetRegister
+   ei
+   halt                    ; Make sure yo don't die right when race restarts.
+   halt
+   ret
+InitializeGeneralVariables:
+
+InitializeSprites:
+InitializeBackground:
+
+UpdateSATBuffers:
+UpdateNameTableBuffers:
+.ends
+
 ; ---------------------
 .section "Initialize" free
 InitializeFramework:
