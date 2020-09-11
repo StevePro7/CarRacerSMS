@@ -231,13 +231,9 @@ Racetrack:
    call GetReady
    call MainLoop
 
-    
-dead:
-    jp dead
-    
+
+
 .ends
-
-
 ; ---------------------
 .section "Initialize" free
 InitializeFramework:
