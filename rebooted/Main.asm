@@ -790,6 +790,45 @@ AnimateEnemies:
    ret
 .ends
 ; ---------------------
+.section "Celebrate" free
+Celebrate:
+   di
+   ld a,TURN_SCREEN_OFF
+   ld b,VDP_REGISTER_1
+   call SetRegister
+   ld hl,SAT_Y_TABLE
+   PrepareVram
+   ld c,VDP_DATA
+   ld a,SPRITE_TERMINATOR
+   out (c),a                  ; Kill the sprites.
+   ld a,0
+   ld b,VDP_VERTICAL_SCROLL_REGISTER
+   call SetRegister
+   ld ix,CelebrationscreenImageData
+   call LoadImage
+   ld a,TURN_SCREEN_ON_TALL_SPRITES
+   ld b,VDP_REGISTER_1
+   call SetRegister
+   call PSGSFXStop
+   call PSGStop
+   ld hl,CelebrateSound
+   call PSGPlayNoRepeat
+   ei
+CelebrationLoop:
+   call WaitForFrameInterrupt
+   call PSGFrame
+   call Housekeeping
+   ld a,(Joystick1)
+   bit PLAYER1_START,a
+   ret z
+   jp CelebrationLoop
+.ends
+
+
+
+
+
+; ---------------------
 .section "Initialize" free
 InitializeFramework:
     call ClearRam
