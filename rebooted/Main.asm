@@ -246,12 +246,13 @@ PrepareRace:
    call PSGStop
    call PSGSFXStop
    call InitializeBackground
+   call InitializeScore
    call InitializeSprites
    call UpdateSATBuffers
    call UpdateNameTableBuffers
    call LoadSAT            ; Load the sprite attrib. table from the buffers.
    call LoadNameTable
-   ld a,SPRIITE_COLOR_1    ; Color the border\
+   ld a,SPRITE_COLOR_1     ; Color the border\
    ld b,VDP_REGISTER_7
    call SetRegister
    ld a,TURN_SCREEN_ON_TALL_SPRITES
@@ -261,13 +262,58 @@ PrepareRace:
    halt                    ; Make sure yo don't die right when race restarts.
    halt
    ret
-InitializeGeneralVariables:
-
-InitializeSprites:
+InitializeScore:
+   ld hl,SCORE_DIGITS_TILE_ADDRESS
+   PrepareVram
+   ld hl,ScoreDigits_Tiles
+   ld bc,SCORE_DIGITS_TILE_AMOUNT
+   call LoadVRAM
+   ret
 InitializeBackground:
+   ld ix,RacetrackMockupData     ; Load the racetrack dummy image data.
+   call LoadImage
+   ret
+InitializeSprites:
+   ld hl,PALETTE_BANK_2          ; Load the sprites palette.
+   PrepareVram
+   ld hl,Sprites_Palette
+   ld bc,ONE_FULL_PALETTE
+   call LoadVRAM
+   call InitializePlayer
+   call InitializeEnemies
 
-UpdateSATBuffers:
+InitializeGeneralVariables:
+   xor a
+   ld (CollisionFlag),a
+   ld (GameBeatenFlag),a
+   ld (NewBestScoreFlag),a
+   ld a,r
+   ld (RandomSeed),a
+   ld a,EASY_MODE
+   ld (GameMode),a
+   ld hl,START_SCORE          ; Put a zero in both of the player's score digits.
+   ld (Score),hl
+GetReady:                     ; Wait a little befor the action starts.
+   ld hl,Engine
+   call PSGSFXPlay            ; Play the hrmmm.. hrm.... hrrrrmmmm. sound.
+   ld b,GET_READY_DELAY
+-:
+   halt
+   push bc
+   call PSGSFXFrame           ; Wait while the sound effects plays.
+   pop bc
+   djnz -
+   ld hl,Engine2              ; Shift to regular low-pitch motor sound.
+   call PSGSFXPlayLoop
+   ret
+; ---------------------
+      UpdateSATBuffers:
 UpdateNameTableBuffers:
+
+
+InitializePlayer:
+InitializeEnemies:
+
 .ends
 
 ; ---------------------
