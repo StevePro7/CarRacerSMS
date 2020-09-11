@@ -557,13 +557,141 @@ Death:
 .section "The player" free
 InitializePlayer:
    ld hl,FIRST_PLAYER_TILE
-InitializeEnemies:
-AnimateEnemies:
+   PrepareVram
+   ld hl,PlayerCar_Tiles
+   ld bc,PLAYER_METASPRITE_SIZE
+   call LoadVRAM
+   ld a,PLAYER_Y_START
+   ld (PlayerY),a
+   ld a,PLAYER_X_START
+   ld (PlayerX),a
+   ld hl,PlayerCel0
+   ld (PlayerMetaSpriteDataPointer),hl
+   ld ix,PlayerY
+   call UpdateCar
+   ret
 AnimatePlayer:
-
-
+   ld ix,PlayerY
+   ld bc, PlayerCelTable
+   ld hl,PlayerMetaSpriteDataPointer
+   call AnimateCar
+   ret
 MovePlayer:
+   ld a,(Joystick1)
+   bit PLAYER1_JOYSTICK_RIGHT,a
+   jp nz,+
+   ld hl,RandomSeed+1               ; Modify MSB of seed whenever player moves right.
+   dec (hl)
+   ld a,(PlayerX)
+   cp RIGHT_BORDER
+   jp nc,+
+   add a,PLAYER_HORIZONTAL_SPEED
+   ld (PlayerX),a
+   ret
++:
+   bit PLAYER1_JOYSTICK_LEFT,a
+   ret nz
+   ld hl,RandomSeed+1               ; Modify MSB of seed whenever player moves left.
+   inc (hl)
+   ld a,(PlayerX)
+   cp LEFT_BORDER
+   ret c
+   sub PLAYER_HORIZONTAL_SPEED
+   ld (PlayerX),a
+   ret
+.ends
+; ---------------------
+.section "Enemy code" free
+InitializeEnemies:
+   ld hl,FIRST_ENEMY_TILE
+   PrepareVram
+   ld hl,EnemyCar_Tiles
+   ld bc,ENEMY_METASPRITE_SIZE
+   call LoadVRAM
+   ld a,ASH_Y_START
+   ld (Ash.y),a
+   ld a,ASH_X_START
+   ld (Ash.x),a
+   ld hl,DisabledCar
+   ld (Ash.metasprite),hl
+   ld a,1
+   ld (Ash.index),a
+   ld a,MAY_Y_START
+   ld (May.y),a
+   ld a,MAY_X_START
+   ld (May.x),a
+   ld hl,DisabledCar
+   ld (May.metasprite),hl
+   ld a,2
+   ld (May.index),a
+   ld a,IRIS_Y_START
+   ld (Iris.y),a
+   ld a,IRIS_X_START
+   ld (Iris.x),a
+   ld hl,DisabledCar
+   ld (Iris.metasprite),hl
+   ld a,3
+   ld (Iris.index),a
+   xor a
+   ld (Ash.status),a
+   ld (May.status),a
+   ld (Iris.status),a
+   ret
 MoveEnemies:
+   ld ix,Ash
+   call MoveEnemy
+   ld ix,May
+   call MoveEnemy
+   ld ix,Iris
+   call MoveEnemy
+   ret
+ MoveEnemy:
+   call MoveEnemyVertically
+   call MoveEnemyHorizontally
+   ret
+MoveEnemyVertically:
+   ld a,(ix+0)                ; Get enemy y-position.
+   add a,ENEMY_VERTICAL_SPEED
+   ld (ix+0),a
+   cp BOTTOM_BORDER
+   call z,ResetEnemy
+   ld a,(ix+7)
+   cp ENABLED
+   ret nz
+   ld a,(ix+0)
+   cp SCORE_LINE
+   call z,IncrementScore
+   ret
+IncrementScore:
+   ld a,(Score+1)
+   cp 9
+   jp z,+
+   inc a
+   ld (Score+1),a
+   ret
++:
+   xor a
+   ld (Score+1),a
+   ld a,(Score)
+   cp 9
+   jp nz,+
+   ld a,FLAG_UP
+   ld (GameBeatenFlag),a
+   ld hl,GAME_BEATEN_SCORE    ; End on a score of 99.
+   ld (Score),hl
+   ret
++:
+   inc a
+   ld (Score),a
+   ret
+MoveEnemyHorizontally:
+   
+AnimateEnemies:
+
+
+
+ResetEnemy:
+
 
 .ends
 
