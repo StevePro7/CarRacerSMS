@@ -726,18 +726,69 @@ ToggleEnemyDirection:
    ld (ix+6),a
    ret
 ResetEnemy:
-
-   
-   
+   call GetRandomNumber
+   and %00000111              ; Shoudl this car be disabled?
+   cp 0
+   jp nz,+
+   ld a,DISABLED              ; Yes....
+   ld (ix+7),a
+   ld hl,DisabledCar
+   ld (ix+2),l
+   ld (ix+3),h
+   ret
++:
+   ld a,ENABLED
+   ld (ix+7),a
+   ld hl,GreenCarCel0
+   ld (ix+2),l
+   ld (ix+3),h
+   call GetRandomNumber
+   and %00001111              ; Apply mask so that A contains a value between 0-31.
+   ld d,0
+   ld e,a
+   ld hl,RespawnTable
+   add hl,de
+   ld a,(hl)                  ; Get a starting x-pos. from the table.
+   ld (ix+1),a                ; Enemy's x-position.
+   ld a,(GameMode)
+   cp EASY_MODE
+   jp nz,+
+   call GetRandomNumber
+   and EASY_MODE_MASK         ; Will the car move r/l, or just straight down?
+   ld (ix+6),a
+   ret
++:
+   call GetRandomNumber
+   and HARD_MODE_MASK         ; Will the car move r/l, or just straight down?
+   ld (ix+6),a
+   ret
 AnimateEnemies:
-
-
-
-
-
-
+   ld a,(Ash.status)          ; If an enemy car is enabled, it will be animated...
+   cp 0
+   jp z,+
+   ld ix,Ash
+   ld bc, EnemyCelTable
+   ld hl,Ash.metasprite 
+   call AnimateCar
++:
+   ld a,(May.status)
+   cp 0
+   jp z,+
+   ld ix,May
+   ld bc,EnemyCelTable
+   ld hl,May.metasprite
+   call AnimateCar
++:
+   ld a,(Iris.status)
+   cp 0
+   jp z,+
+   ld ix,Iris
+   ld bc,EnemyCelTable
+   ld  hl,Iris.metasprite
+   call AnimateCar
++:
+   ret
 .ends
-
 ; ---------------------
 .section "Initialize" free
 InitializeFramework:
