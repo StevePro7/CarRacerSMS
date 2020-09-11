@@ -230,9 +230,29 @@ Racetrack:
    call PrepareRace
    call GetReady
    call MainLoop
-
-
-
+   call Death
+   ld a,(NewBestScoreFlag)          ; Is today's best score beaten?
+   cp FLAG_UP
+   jp nz,+
+   call Celebrate                   ; Show celeb screen before going back to title.
+   jp ShowTitleScreen
++:
+   ld a,(GameBeatenFlag)            ; Is the game beaten?
+   cp FLAG_UP
+   jp nz,+
+   call Celebrate                   ; This calls for celebration...
+   jp ShowTitleScreen
++:
+   ld a,(AttemptCounter)            ; Are we out of attempts to beat todays hiscore?
+   cp MAX_ATTEMPTS
+   jp nz,+
+   xor a
+   ld (AttemptCounter),a
+   jp ShowTitleScreen
++:
+   inc a                            ; If none of the above, fall through to here and
+   ld (AttemptCounter),a            ; have another go at the race track.
+   jp Racetrack
 .ends
 ; ---------------------
 .section "Initialize" free
