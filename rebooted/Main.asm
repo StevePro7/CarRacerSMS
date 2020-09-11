@@ -237,6 +237,91 @@ dead:
     
 .ends
 
+
+; ---------------------
+.section "Initialize" free
+InitializeFramework:
+    call ClearRam
+    call PSGInit
+    ld hl,RegisterInitValues
+    call LoadVDPRegisters
+    call SetHighScores
+    ret
+SetHighScores:
+    ld hl,TODAYS_BEST_SCORE_INITIAL_VALUE
+    ld (TodaysBestScore),hl
+    ret
+.ends
+; ---------------------
+.section "Titlescreen" free
+PrepareTitlescreen:
+    di
+    call PSGSFXStop
+    call PSGStop
+    ld a,TURN_SCREEN_OFF
+    ld b,VDP_REGISTER_1
+    call SetRegister
+    call LoadTitleScreen
+    ld a,TURN_SCREEN_ON_TALL_SPRITES
+    ld b,VDP_REGISTER_1
+    call SetRegister
+    ld hl,Intro
+    call PSGPlayNoRepeat
+    ei
+    ret
+LoadTitleScreen:
+    ld hl,SAT_Y_TABLE
+    PrepareVram
+    ld c,VDP_DATA
+    ld a,SPRITE_TERMINATOR
+    out (c),a               ; Kill the sprites.
+    ld a,0
+    ld b,VDP_VERTICAL_SCROLL_REGISTER
+    call SetRegister
+    ld ix,TitlescreenImageData
+    call LoadImage
+    ret
+TitlescreenLoop:
+    call WaitForFrameInterrupt
+    call AnimateTitle
+    call PSGFrame
+    call Housekeeping
+    ld a,(Joystick1)
+    bit PLAYER1_START,a
+    ret z
+    jp TitlescreenLoop
+AnimateTitle:
+    ld a,(Counter)          ; Is it time for a color cycle...?
+    add a,64
+    ld (Counter),a
+    cp 0
+    call z,DoColorCycle
+    ret
+DoColorCycle:
+    ld c,VDP_CONTROL        ; Prepare vram at the correct color in the palette.
+    ld a,$06
+    out (c),a
+    or %11000000
+    out (c),a
+    ld c,VDP_DATA
+    ld d,0
+    ld a,(Cycle)
+    inc a
+    cp 6                    ; Each letter + one all orange.
+    jp nz,+
+    xor a
++:
+    ld (Cycle),a
+    add a,a
+    add a,a
+    add a,a                 ; Cycle counter times 8,
+    ld e,a                  ; - it's an 8 byte element table here!
+    ld hl,PaletteTable
+    add hl,de               ; Apply the offset.
+    Outi_x4
+    Outi_x4
+    ret
+.ends  
 ; ---------------------
 .section "Racetrack code" free
 PrepareRace:
@@ -824,94 +909,6 @@ CelebrationLoop:
    jp CelebrationLoop
 .ends
 
-
-
-
-
-; ---------------------
-.section "Initialize" free
-InitializeFramework:
-    call ClearRam
-    call PSGInit
-    ld hl,RegisterInitValues
-    call LoadVDPRegisters
-    call SetHighScores
-    ret
-SetHighScores:
-    ld hl,TODAYS_BEST_SCORE_INITIAL_VALUE
-    ld (TodaysBestScore),hl
-    ret
-.ends
-; ---------------------
-.section "Titlescreen" free
-PrepareTitlescreen:
-    di
-    call PSGSFXStop
-    call PSGStop
-    ld a,TURN_SCREEN_OFF
-    ld b,VDP_REGISTER_1
-    call SetRegister
-    call LoadTitleScreen
-    ld a,TURN_SCREEN_ON_TALL_SPRITES
-    ld b,VDP_REGISTER_1
-    call SetRegister
-    ld hl,Intro
-    call PSGPlayNoRepeat
-    ei
-    ret
-LoadTitleScreen:
-    ld hl,SAT_Y_TABLE
-    PrepareVram
-    ld c,VDP_DATA
-    ld a,SPRITE_TERMINATOR
-    out (c),a               ; Kill the sprites.
-    ld a,0
-    ld b,VDP_VERTICAL_SCROLL_REGISTER
-    call SetRegister
-    ld ix,TitlescreenImageData
-    call LoadImage
-    ret
-TitlescreenLoop:
-    call WaitForFrameInterrupt
-    call AnimateTitle
-    call PSGFrame
-    call Housekeeping
-    ld a,(Joystick1)
-    bit PLAYER1_START,a
-    ret z
-    jp TitlescreenLoop
-AnimateTitle:
-    ld a,(Counter)          ; Is it time for a color cycle...?
-    add a,64
-    ld (Counter),a
-    cp 0
-    call z,DoColorCycle
-    ret
-DoColorCycle:
-    ld c,VDP_CONTROL        ; Prepare vram at the correct color in the palette.
-    ld a,$06
-    out (c),a
-    or %11000000
-    out (c),a
-    ld c,VDP_DATA
-    ld d,0
-    ld a,(Cycle)
-    inc a
-    cp 6                    ; Each letter + one all orange.
-    jp nz,+
-    xor a
-+:
-    ld (Cycle),a
-    add a,a
-    add a,a
-    add a,a                 ; Cycle counter times 8,
-    ld e,a                  ; - it's an 8 byte element table here!
-    ld hl,PaletteTable
-    add hl,de               ; Apply the offset.
-    Outi_x4
-    Outi_x4
-    ret
-.ends  
 ; ---------------------
 .section "Misc functions" free
 Housekeeping:
