@@ -5,6 +5,21 @@ Tonight I updated the WLA-DX files for Windows so will rebuild accordingly:
 
 tried new change
 
+GitKraken
+make change but do the following at terminal
+Alt + T
+
+git add .
+git commit -m "my message"
+
+This will use StevePro7
+
+
+
+git add .
+this stages the change to the file
+
+
 
 29/08/2020
 
