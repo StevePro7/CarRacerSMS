@@ -995,21 +995,31 @@ invcar .db 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ; Background assets.
 
 bgpal  .include "assets\background (palette).inc"
+
 blchar .include "assets\characters_blue (tiles).inc"
+
 rdchar .include "assets\characters_red (tiles).inc"
+
 bgtile .include "assets\background (tiles).inc"
+
 bgmap  .include "assets\background (tilemap).inc"
+
 
 ; Sprite assets.
 
 palspr .include "assets\sprites (palette).inc"
+
 pltile .include "assets\player (tiles).inc"
+
 entile .include "assets\enemy (tiles).inc"
+
 plcras .include "assets\player_crashed (tiles).inc"
 
 ; Title screen assets.
 
 timap  .include "assets\title (tilemap).inc"
+
 titile .include "assets\title (tiles).inc"
+
 titune .incbin "assets\RacerTitle_V02.psg"
 .include "assets\PSGlib.inc"
