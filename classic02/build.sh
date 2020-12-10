@@ -1,13 +1,28 @@
+@echo off
+
 clear
 
-::if exist test.o rm test.o
+if [ -a test.o ]
+then
+    rm test.o
+fi
 
-wla-z80 main.asm
+echo Compile
+wla-z80 -o test.o main.asm 
 
-#echo [objects] > linkfile
-#echo main.o >> linkfile
+echo [objects] > linkfile
+echo test.o >> linkfile
 
+echo Link
 wlalink linkfile output.sms
 
-java -jar ~/SEGA/Emulicious/Emulicious.jar output.sms
+echo Run
+# https://linuxhint.com/what_is_dev_null
+java -jar ~/SEGA/Emulicious/Emulicious.jar output.sms 2> /dev/null
 #output.sms
+
+
+if [ -a test.o ]
+then
+    rm test.o
+fi
