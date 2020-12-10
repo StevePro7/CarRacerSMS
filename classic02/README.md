@@ -1,6 +1,25 @@
 # CarRacerSMS
 10/12/2020
 
+GitKraken SUMMARY
+00.
+make changes to file(s)
+
+01.
+GitKraken stage all changes
+
+02.
+Terminal Alt + T
+git commit -m "This is my commit message"
+
+03.
+GitKraken
+Push
+
+This way will ensure that "StevePro7" is listed in the history
+if commit via GitKraken then will use GitKraken a/c i.e. SteveProXNA
+
+
 Tonight I updated the WLA-DX files for Windows so will rebuild accordingly:
 
 tried new change
