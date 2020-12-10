@@ -994,32 +994,32 @@ invcar .db 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 
 ; Background assets.
 
-bgpal  .include "assets\background (palette).inc"
+bgpal  .include "Assets/background (palette).inc"
 
-blchar .include "assets\characters_blue (tiles).inc"
+blchar .include "Assets/characters_blue (tiles).inc"
 
-rdchar .include "assets\characters_red (tiles).inc"
+rdchar .include "Assets/characters_red (tiles).inc"
 
-bgtile .include "assets\background (tiles).inc"
+bgtile .include "Assets/background (tiles).inc"
 
-bgmap  .include "assets\background (tilemap).inc"
+bgmap  .include "Assets/background (tilemap).inc"
 
 
 ; Sprite assets.
 
-palspr .include "assets\sprites (palette).inc"
+palspr .include "Assets/sprites (palette).inc"
 
-pltile .include "assets\player (tiles).inc"
+pltile .include "Assets/player (tiles).inc"
 
-entile .include "assets\enemy (tiles).inc"
+entile .include "Assets/enemy (tiles).inc"
 
-plcras .include "assets\player_crashed (tiles).inc"
+plcras .include "Assets/player_crashed (tiles).inc"
 
 ; Title screen assets.
 
-timap  .include "assets\title (tilemap).inc"
+timap  .include "Assets/title (tilemap).inc"
 
-titile .include "assets\title (tiles).inc"
+titile .include "Assets/title (tiles).inc"
 
-titune .incbin "assets\RacerTitle_V02.psg"
-.include "assets\PSGlib.inc"
+titune .incbin "Assets/RacerTitle_V02.psg"
+.include "Assets/PSGlib.inc"
