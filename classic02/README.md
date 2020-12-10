@@ -19,6 +19,8 @@ This will use StevePro7
 git add .
 this stages the change to the file
 
+finally can Push from GitKraken and will be OK
+
 
 
 29/08/2020
