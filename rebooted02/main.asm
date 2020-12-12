@@ -1069,21 +1069,22 @@ RespawnTable:            ; X-positions for enemy respawn.
    .db 30 46 66 86 140 84 95 105
 
 RacetrackTiles:
-   .include "Race\rt_tiles.inc"
+   .include "Race/rt_tiles.inc"
+   
 RacetrackTilesEnd:
 RacetrackTilemap:
-   .include "Race\rt_tilemap.inc"
+   .include "Race/rt_tilemap.inc"
 RacetrackPalette:
-   .include "Race\rt_palette.inc"
+   .include "Race/rt_palette.inc"
 RacetrackPaletteEnd:
 PlayerCar_Tiles:
-   .include "Race\PlayerCar_tiles.inc"
+   .include "Race/PlayerCar_tiles.inc"
 ScoreDigits_Tiles:
-   .include "Race\ScoreDigits_tiles.inc"
+   .include "Race/ScoreDigits_tiles.inc"
 EnemyCar_Tiles:
-   .include "Race\EnemyCar_tiles.inc"
+   .include "Race/EnemyCar_tiles.inc"
 Sprites_Palette:
-   .include "Race\Sprites_palette.inc"
+   .include "Race/Sprites_palette.inc"
 RacetrackMockupData:
    .dw RacetrackTiles    ; Pointer to tile data.
    .dw RacetrackTilesEnd-RacetrackTiles ; Tile data (bytes) to write.
@@ -1093,12 +1094,12 @@ RacetrackMockupData:
    .dw RacetrackPaletteEnd-RacetrackPalette ; Amount of colors.
 
 TitlescreenTiles:
-   .include "Title\Titlescreen_tiles.inc"
+   .include "Title/Titlescreen_tiles.inc"
 TitlescreenTilesEnd:
 TitlescreenTilemap:
-   .include "Title\Titlescreen_tilemap.inc"
+   .include "Title/Titlescreen_tilemap.inc"
 TitlescreenPalette:
-   .include "Title\Titlescreen_palette.inc"
+   .include "Title/Titlescreen_palette.inc"
 TitlescreenPaletteEnd:
 TitlescreenImageData:
    .dw TitlescreenTiles  ; Pointer to tile data.
@@ -1109,12 +1110,12 @@ TitlescreenImageData:
    .dw TitlescreenPaletteEnd-TitlescreenPalette ; Amount of colors.
 
 CelebrationscreenTiles:
-   .include "Celebrate\celebrate_tiles.inc"
+   .include "Celebrate/celebrate_tiles.inc"
 CelebrationscreenTilesEnd:
 CelebrationscreenTilemap:
-   .include "Celebrate\celebrate_tilemap.inc"
+   .include "Celebrate/celebrate_tilemap.inc"
 CelebrationscreenPalette:
-   .include "Celebrate\celebrate_palette.inc"
+   .include "Celebrate/celebrate_palette.inc"
 CelebrationscreenPaletteEnd:
 CelebrationscreenImageData:
    .dw CelebrationscreenTiles  ; Pointer to tile data.
